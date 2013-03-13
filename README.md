@@ -15,4 +15,4 @@ How do I use Zombie Monkey?
 4. Listen for an `Event.COMPLETE` event
 5. Invoke the `eval()` method on the engine with the ECMAScript script as a string as the first argument
 
-Full package imports are not achieved by the `import` statement, e.g. `import flash.utils.*`, but by the `use namespace` statement, e.g. `use namespace "flash.utils"`. Similarly qualified class names are not achieved via the dot operator, e.g. `flash.utils.Timer`, but by namespaced class names, e.g. `"flash.utils"::Timer`. Note that you must hard code the namespaces; they cannot be resolved from a variable or a return value of a function. Open namespaces also persist across script executions.
+Full package imports are not achieved by the `import` statement, e.g. `import flash.utils.*`, but by the `use namespace` statement, e.g. `use namespace "flash.utils"`. Similarly, qualified class names are not achieved via the dot operator, e.g. `flash.utils.Timer`, but by namespaced class names, e.g. `"flash.utils"::Timer`. Note that you must hard code the namespaces; they cannot be resolved from a variable or a return value of a function. Open namespaces also persist across script executions.
