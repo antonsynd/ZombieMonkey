@@ -324,14 +324,14 @@ package zm.core
 		 * 
 		 * @param bytes The bytes representing the SWF.
 		 * @return <code>null</code> if the engine is not running or properly 
-		 * loaded, otherwise a hash code representing the loaded file.
+		 * loaded, otherwise a hashcode representing the loaded file.
 		 */
 		public function exec(bytes:ByteArray):String
 		{
 			if (!isRunning)
 			{
-				// Not running, not necessary but it's nice to 
-				// have everything depend on the engine running
+				// This is actually not necessary but it's nice to have 
+				// everything depend on the engine running
 				return null;
 			}
 			
@@ -351,9 +351,12 @@ package zm.core
 		 * Evaluates an ES4 script.
 		 * 
 		 * @param script The ES4 script.
-		 * @param context A named context to refer to the script's environment.
+		 * @param context A named context to refer to the script's environment. 
+		 * This would ideally be the filename of the file containing the 
+		 * script. If no context is provided, the generated hashcode for the 
+		 * ABC file will be used.
 		 * @return <code>null</code> if the engine is not running or properly 
-		 * loaded, otherwise a hash code representing the compiled and loaded 
+		 * loaded, otherwise a hashcode representing the compiled and loaded 
 		 * ABC file.
 		 */
 		public function eval(script:String, context:String = null):String
@@ -364,17 +367,28 @@ package zm.core
 				return null;
 			}
 			
-			// Analyze for namespace usage and store those namespaces (not foolproof)
+			// Analyze for namespace usage and store those namespaces into the 
+			// namespace set. We will later add them into a directives line to 
+			// open all namespaces in the set for the script.
+			// 
+			// NOTE: we want to determine which namespaces are opened in the 
+			// script and which aren't (but are in the namespace set) so we can 
+			// add only the ones that aren't open in the script. We do this 
+			// 'cause we want to reduce the directives line by reducing 
+			// redundant <code>use namespace</code> statements.
 			var pattern:RegExp = /use[ \t]+namespace[ \t](('.+?')|(".+?"))[ \t]*([;\n\r]|$)/g;
 			var result:Object = pattern.exec(script);
 			
-			// Reset the values of each stored namespace
+			// Mark each stored namespace as being false (unused in the current 
+			// script)
 			for (var key:String in _namespaces)
 			{
 				_namespaces[key] = false;
 			}
 			
-			// Go through and find namespaces being used
+			// Go through the matched namespaces in the script and add each 
+			// into the namespace set with a value of true (used in the current 
+			// script)
 			while (result != null)
 			{
 				key = result[1].replace(/['"]/g, "");
@@ -383,14 +397,29 @@ package zm.core
 				result = pattern.exec(script); 
 			}
 			
-			// Add namespaces that were previously used and not included in this context
+			// Namespaces in the set that have a value of false are not open 
+			// in the current script and should be added into the directives 
+			// to maintain persistent namespaces.
 			var directives:String = "";
 			for (key in _namespaces)
 			{
-				directives += "use namespace '" + key + "'; ";
+				if (!_namespaces[key])
+				{
+					directives += "use namespace '" + key + "'; ";
+				}
 			}
 			
-			// Compile the code with modifications
+			// Compile the code with preprocessor modifications:
+			// 		global try..catch (no finally 'cause it doesn't work in 
+			//			Tamarin, unfortunately)
+			//		injection of global object as <code>this</code>
+			//		directives (namespaces to be opened)
+			// 
+			// We use _qualifiedClassName.engine and don't store it into a 
+			// variable so that we don't introduce any variables that the 
+			// script could discover and manipulate, i.e. it would be bad if 
+			// we stored it into a variable zmEngine and the script overwrote 
+			// that variable when we 
 			var hashCode:String = generateHashCode();
 			var bytes:ByteArray;
 			bytes = _compileStringToBytes("" + 
@@ -407,7 +436,7 @@ package zm.core
 					_qualifiedClassName + ".engine.handleError('" + hashCode + "', error);" + 
 				"}" + 
 				_qualifiedClassName + ".engine.updateGlobal('" + hashCode + "', this);" + 
-				"'zm.core'::ZMEngine.engine.kill('" + hashCode + "');", context ? context : hashCode);
+				_qualifiedClassName + ".engine.kill('" + hashCode + "');", context ? context : hashCode);
 			bytes.position = 0;
 			
 			// Store it with a unique hash code
