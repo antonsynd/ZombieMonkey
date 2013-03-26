@@ -31,6 +31,7 @@ package zm.core
 	import flash.utils.getQualifiedClassName;
 	
 	import zm.events.ZMErrorEvent;
+	import zm.events.ZMEvent;
 	
 	//--------------------------------------------------------------------------
 	//  
@@ -41,6 +42,13 @@ package zm.core
 	/**
 	 * The ZombieMonkey engine encapsulates the compiled ABC binaries of the 
 	 * Tamarin compiler contributed to Mozilla by Adobe.
+	 * 
+	 * TODO:
+	 * 		Rename eval to evalAsync and create eval(Sync)
+	 * 		Add an execution queue triggered by SCRIPT_ENTER and SCRIPT_EXIT 
+	 * 		events.
+	 * 		Probably need to split some code off of this class, it's getting 
+	 * 		a little big.
 	 */
 	public final class ZMEngine extends EventDispatcher
 	{
@@ -419,12 +427,14 @@ package zm.core
 			// variable so that we don't introduce any variables that the 
 			// script could discover and manipulate, i.e. it would be bad if 
 			// we stored it into a variable zmEngine and the script overwrote 
-			// that variable when we 
+			// that variable when we want to invoke a method on the engine
 			var hashCode:String = generateHashCode();
 			var bytes:ByteArray;
 			bytes = _compileStringToBytes("" + 
+				_qualifiedClassName + ".engine.handleScriptEnter('" + hashCode + "');" + 
 				"try" + 
 				"{" + 
+					// Create a fake "this" object from the global object
 					"with (" + _qualifiedClassName + ".engine.getGlobal('" + hashCode + "'))" + 
 					"{" + 
 						directives + 
@@ -433,9 +443,10 @@ package zm.core
 				"}" + 
 				"catch (error)" + 
 				"{" + 
-					_qualifiedClassName + ".engine.handleError('" + hashCode + "', error);" + 
+					_qualifiedClassName + ".engine.handleRuntimeError('" + hashCode + "', error);" + 
 				"}" + 
 				_qualifiedClassName + ".engine.updateGlobal('" + hashCode + "', this);" + 
+				_qualifiedClassName + ".engine.handleScriptExit('" + hashCode + "');" + 
 				_qualifiedClassName + ".engine.kill('" + hashCode + "');", context ? context : hashCode);
 			bytes.position = 0;
 			
@@ -456,11 +467,27 @@ package zm.core
 		 * @param hashCode A hash code of a loaded ABC file.
 		 * @param error The error to throw as a ZMErrorEvent.
 		 */
-		public function handleError(hashCode:String, error:Error):void
+		public function handleRuntimeError(hashCode:String, error:Error):void
 		{
 			if (hashCode in _loaders)
 			{
 				dispatchEvent(new ZMErrorEvent(error));
+			}
+		}
+		
+		public function handleScriptEnter(hashCode:String):void
+		{
+			if (hashCode in _loaders)
+			{
+				dispatchEvent(new ZMEvent(ZMEvent.SCRIPT_ENTER));
+			}
+		}
+		
+		public function handleScriptExit(hashCode:String):void
+		{
+			if (hashCode in _loaders)
+			{
+				dispatchEvent(new ZMEvent(ZMEvent.SCRIPT_EXIT));
 			}
 		}
 		

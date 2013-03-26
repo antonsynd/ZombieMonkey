@@ -3,6 +3,7 @@
   <includeClasses>
     <classEntry path="zm.core.ZMEngine"/>
     <classEntry path="zm.events.ZMErrorEvent"/>
+    <classEntry path="zm.events.ZMEvent"/>
   </includeClasses>
   <includeResources/>
   <namespaceManifests/>
