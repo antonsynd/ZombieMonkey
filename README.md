@@ -4,7 +4,7 @@ ZombieMonkey
 What is ZombieMonkey?
 ---------------------
 
-ZombieMonkey is an ActionScript 3.0 library that encapsulates the Tamarin binaries for compiling and running ECMAScript at runtime. In particular, it preserves variable and function declarations across script executions. This behavior emulates an interactive shell environment where variables and functions are persistent. As such, it can be embedded to provide ECMAScript scripting capabilities to any ActionScript 3.0 project.
+ZombieMonkey is an ActionScript 3.0 library that encapsulates the Tamarin binaries for compiling and running ECMAScript at runtime. In particular, it preserves variable and function declarations across script executions. This behavior emulates an interactive shell environment where variables and functions are persistent. As such, it can be embedded to provide ECMAScript scripting capabilities to any ActionScript 3.0 project. It was originally hosted at http://code.google.com/p/zombie-monkey/
 
 How do I use ZombieMonkey?
 --------------------------
