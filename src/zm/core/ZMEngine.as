@@ -375,48 +375,6 @@ package zm.core
 				return null;
 			}
 			
-			// Analyze for namespace usage and store those namespaces into the 
-			// namespace set. We will later add them into a directives line to 
-			// open all namespaces in the set for the script.
-			// 
-			// NOTE: we want to determine which namespaces are opened in the 
-			// script and which aren't (but are in the namespace set) so we can 
-			// add only the ones that aren't open in the script. We do this 
-			// 'cause we want to reduce the directives line by reducing 
-			// redundant <code>use namespace</code> statements.
-			var pattern:RegExp = /use[ \t]+namespace[ \t](('.+?')|(".+?"))[ \t]*([;\n\r]|$)/g;
-			var result:Object = pattern.exec(script);
-			
-			// Mark each stored namespace as being false (unused in the current 
-			// script)
-			for (var key:String in _namespaces)
-			{
-				_namespaces[key] = false;
-			}
-			
-			// Go through the matched namespaces in the script and add each 
-			// into the namespace set with a value of true (used in the current 
-			// script)
-			while (result != null)
-			{
-				key = result[1].replace(/['"]/g, "");
-				_namespaces[key] = true;
-				
-				result = pattern.exec(script); 
-			}
-			
-			// Namespaces in the set that have a value of false are not open 
-			// in the current script and should be added into the directives 
-			// to maintain persistent namespaces.
-			var directives:String = "";
-			for (key in _namespaces)
-			{
-				if (!_namespaces[key])
-				{
-					directives += "use namespace '" + key + "'; ";
-				}
-			}
-			
 			// Compile the code with preprocessor modifications:
 			// 		global try..catch (no finally 'cause it doesn't work in 
 			//			Tamarin, unfortunately)
@@ -461,34 +419,12 @@ package zm.core
 		}
 		
 		/**
-		 * Catches an error thrown by a loaded ABC file and dispatches an 
-		 * ZMErrorEvent object containing the error.
 		 * 
-		 * @param hashCode A hash code of a loaded ABC file.
-		 * @param error The error to throw as a ZMErrorEvent.
+		 * 
 		 */
-		public function handleRuntimeError(hashCode:String, error:Error):void
+		public function evalAsync(script:String, context:String = null):String
 		{
-			if (hashCode in _loaders)
-			{
-				dispatchEvent(new ZMErrorEvent(error));
-			}
-		}
-		
-		public function handleScriptEnter(hashCode:String):void
-		{
-			if (hashCode in _loaders)
-			{
-				dispatchEvent(new ZMEvent(ZMEvent.SCRIPT_ENTER));
-			}
-		}
-		
-		public function handleScriptExit(hashCode:String):void
-		{
-			if (hashCode in _loaders)
-			{
-				dispatchEvent(new ZMEvent(ZMEvent.SCRIPT_EXIT));
-			}
+			return null;
 		}
 		
 		/**
@@ -706,6 +642,64 @@ package zm.core
 		
 		//----------------------------------------------------------------------
 		//  
+		//  Utilities
+		//  
+		//----------------------------------------------------------------------
+		
+		public function createDirectives():String
+		{
+			// Namespaces in the set that have a value of false are not open 
+			// in the current script and should be added into the directives 
+			// to maintain persistent namespaces.
+			var directives:String = "";
+			for (var key in _namespaces)
+			{
+				if (!_namespaces[key])
+				{
+					directives += "use namespace '" + key + "'; ";
+				}
+			}
+			
+			return directives;
+		}
+		
+		public function extractNamespaces(script:String):Vector.<String>
+		{
+			// Analyze for namespace usage and store those namespaces into the 
+			// namespace set. We will later add them into a directives line to 
+			// open all namespaces in the set for the script.
+			// 
+			// NOTE: we want to determine which namespaces are opened in the 
+			// script and which aren't (but are in the namespace set) so we can 
+			// add only the ones that aren't open in the script. We do this 
+			// 'cause we want to reduce the directives line by reducing 
+			// redundant <code>use namespace</code> statements.
+			var pattern:RegExp = /use[ \t]+namespace[ \t](('.+?')|(".+?"))[ \t]*([;\n\r]|$)/g;
+			var result:Object = pattern.exec(script);
+			
+			// Mark each stored namespace as being false (unused in the current 
+			// script)
+			for (var key:String in _namespaces)
+			{
+				_namespaces[key] = false;
+			}
+			
+			// Go through the matched namespaces in the script and add each 
+			// into the namespace set with a value of true (used in the current 
+			// script)
+			while (result != null)
+			{
+				key = result[1].replace(/['"]/g, "");
+				_namespaces[key] = true;
+				
+				result = pattern.exec(script); 
+			}
+			
+			return null;
+		}
+		
+		//----------------------------------------------------------------------
+		//  
 		//  Event Handlers
 		//  
 		//----------------------------------------------------------------------
@@ -725,6 +719,37 @@ package zm.core
 			}
 			
 			dispatchEvent(event);
+		}
+		
+		/**
+		 * Catches an error thrown by a loaded ABC file and dispatches an 
+		 * ZMErrorEvent object containing the error.
+		 * 
+		 * @param hashCode A hash code of a loaded ABC file.
+		 * @param error The error to throw as a ZMErrorEvent.
+		 */
+		public function handleRuntimeError(hashCode:String, error:Error):void
+		{
+			if (hashCode in _loaders)
+			{
+				dispatchEvent(new ZMErrorEvent(error));
+			}
+		}
+		
+		public function handleScriptEnter(hashCode:String):void
+		{
+			if (hashCode in _loaders)
+			{
+				dispatchEvent(new ZMEvent(ZMEvent.SCRIPT_ENTER));
+			}
+		}
+		
+		public function handleScriptExit(hashCode:String):void
+		{
+			if (hashCode in _loaders)
+			{
+				dispatchEvent(new ZMEvent(ZMEvent.SCRIPT_EXIT));
+			}
 		}
 	}
 }
